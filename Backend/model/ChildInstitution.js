@@ -3,7 +3,6 @@ const sequelize = require('../config/db');
 const Child = require('./Child');
 const Institution = require('./Institution');
 
-// جدول وسيط بين الأطفال والمؤسسات
 const ChildInstitution = sequelize.define('ChildInstitution', {
   child_id: {
     type: DataTypes.BIGINT.UNSIGNED,
@@ -24,7 +23,6 @@ const ChildInstitution = sequelize.define('ChildInstitution', {
   timestamps: false
 });
 
-// تعريف العلاقة many-to-many
 Child.belongsToMany(Institution, {
   through: ChildInstitution,
   foreignKey: 'child_id',

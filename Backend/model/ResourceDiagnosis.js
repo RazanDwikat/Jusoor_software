@@ -1,4 +1,3 @@
-// models/ResourceDiagnosis.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const Resource = require('./Resource');

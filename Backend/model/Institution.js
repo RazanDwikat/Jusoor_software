@@ -22,7 +22,28 @@ const Institution = sequelize.define('Institution', {
   updated_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+  location_lat: {
+    type: DataTypes.DECIMAL(10, 8),
+    allowNull: true
+  },
+  location_lng: {
+    type: DataTypes.DECIMAL(11, 8),
+    allowNull: true
+  },
+  location_address: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  city: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
+  region: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   }
+
 }, {
   tableName: 'Institutions',
   timestamps: false

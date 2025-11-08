@@ -1,5 +1,4 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
-
+// lib/screens/upcoming_sessions_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,21 +7,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class UpcomingSessionsScreen extends StatefulWidget {
   final List<dynamic> upcomingSessions;
-  final List<dynamic> completedSessions;
 
   const UpcomingSessionsScreen({
     super.key,
     required this.upcomingSessions,
-    required this.completedSessions,
   });
 
   @override
   State<UpcomingSessionsScreen> createState() => _UpcomingSessionsScreenState();
 }
 
-class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen> {
+  late List<dynamic> _upcomingSessions;
 
   String selectedChild = 'All';
   String? selectedType;
@@ -31,13 +27,13 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _upcomingSessions = List.from(widget.upcomingSessions);
   }
 
   // ===============================================================
   // فلترة الجلسات
   // ===============================================================
-  List<dynamic> filterSessions(List<dynamic> sessions, {bool onlyCompleted = false}) {
+  List<dynamic> filterSessions(List<dynamic> sessions) {
     return sessions.where((s) {
       bool matchesChild = selectedChild == 'All' || s['childName'] == selectedChild;
       bool matchesType = selectedType == null || s['sessionType'] == selectedType;
@@ -54,12 +50,10 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
         matchesDate = sessionDate.isAfter(startOfWeek) && sessionDate.isBefore(endOfWeek);
       }
 
-      bool matchesStatus = true;
-      if (onlyCompleted) {
-        matchesStatus = s['status'] == 'Completed';
-      }
+      // التأكد من أن الجلسة قادمة وليست مكتملة
+      bool isUpcoming = s['status'] != 'Completed' && s['status'] != 'Cancelled';
 
-      return matchesChild && matchesType && matchesDate && matchesStatus;
+      return matchesChild && matchesType && matchesDate && isUpcoming;
     }).toList();
   }
 
@@ -68,45 +62,32 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
   // ===============================================================
   @override
   Widget build(BuildContext context) {
-    final allChildren = {
-      ...widget.upcomingSessions.map((s) => s['childName'] ?? 'Unknown'),
-      ...widget.completedSessions.map((s) => s['childName'] ?? 'Unknown'),
-    }.toList();
+    final List<String> allChildren = _upcomingSessions
+        .map((s) => s['childName']?.toString() ?? 'Unknown')
+        .toSet()
+        .toList()
+        .cast<String>();
 
-    final allTypes = {
-      ...widget.upcomingSessions.map((s) => s['sessionType'] ?? 'Unknown'),
-      ...widget.completedSessions.map((s) => s['sessionType'] ?? 'Unknown'),
-    }.toList();
+    final List<String> allTypes = _upcomingSessions
+        .map((s) => s['sessionType']?.toString() ?? 'Unknown')
+        .toSet()
+        .toList()
+        .cast<String>();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Upcoming Sessions'),
+        title: const Text('الجلسات القادمة'),
         backgroundColor: Colors.teal,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'Completed'),
-          ],
-        ),
       ),
       body: Column(
         children: [
           // ===================== زر الفلاتر =====================
-          _buildFilterButton(),
+          _buildFilterButton(allChildren, allTypes),
           const Divider(),
 
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Upcoming
-                _buildSessionList(
-                    filterSessions(widget.upcomingSessions), true),
-                // Completed
-                _buildSessionList(
-                    filterSessions(widget.completedSessions, onlyCompleted: true), false),
-              ],
+            child: _buildSessionList(
+              filterSessions(_upcomingSessions),
             ),
           ),
         ],
@@ -117,7 +98,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
   // ===============================================================
   // زر الفلاتر
   // ===============================================================
-  Widget _buildFilterButton() {
+  Widget _buildFilterButton(List<String> allChildren, List<String> allTypes) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ElevatedButton.icon(
@@ -134,7 +115,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
-            builder: (_) => _buildFilterSheet(),
+            builder: (_) => _buildFilterSheet(allChildren, allTypes),
           );
         },
       ),
@@ -144,24 +125,14 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
   // ===============================================================
   // BottomSheet للفلترة
   // ===============================================================
-  Widget _buildFilterSheet() {
-    final allChildren = {
-      ...widget.upcomingSessions.map((s) => s['childName'] ?? 'Unknown'),
-      ...widget.completedSessions.map((s) => s['childName'] ?? 'Unknown'),
-    }.toList();
-
-    final allTypes = {
-      ...widget.upcomingSessions.map((s) => s['sessionType'] ?? 'Unknown'),
-      ...widget.completedSessions.map((s) => s['sessionType'] ?? 'Unknown'),
-    }.toList();
-
+  Widget _buildFilterSheet(List<String> allChildren, List<String> allTypes) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('اختر الطفل:', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const Text('اختر الطفل:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -179,7 +150,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
             ],
           ),
           const SizedBox(height: 16),
-          Text('اختر النوع:', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const Text('اختر النوع:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -197,7 +168,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
             ],
           ),
           const SizedBox(height: 16),
-          Text('اختر التاريخ:', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const Text('اختر التاريخ:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -235,10 +206,10 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
   // ===============================================================
   // بناء قائمة الجلسات
   // ===============================================================
-  Widget _buildSessionList(List<dynamic> sessions, bool isUpcoming) {
+  Widget _buildSessionList(List<dynamic> sessions) {
     if (sessions.isEmpty) {
       return const Center(
-          child: Text('لا توجد جلسات مطابقة حالياً',
+          child: Text('لا توجد جلسات قادمة حالياً',
               style: TextStyle(fontSize: 16)));
     }
 
@@ -247,7 +218,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
       itemCount: sessions.length,
       itemBuilder: (context, index) {
         final s = sessions[index];
-        return _buildSessionCard(s, isUpcoming);
+        return _buildSessionCard(s);
       },
     );
   }
@@ -255,7 +226,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
   // ===============================================================
   // بطاقة الجلسة
   // ===============================================================
-  Widget _buildSessionCard(dynamic s, bool isUpcoming) {
+  Widget _buildSessionCard(dynamic s) {
     final dateTime = DateTime.tryParse('${s['date']} ${s['time']}') ?? DateTime.now();
     final diff = dateTime.difference(DateTime.now());
     final countdown = diff.isNegative
@@ -264,11 +235,9 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
 
     Color statusColor = _getStatusColor(s['status']);
 
-    double progress = isUpcoming
-        ? (diff.inSeconds > 0
+    double progress = (diff.inSeconds > 0
         ? 1 - (diff.inSeconds / Duration(days: 1).inSeconds).clamp(0.0, 1.0)
-        : 1.0)
-        : 1.0;
+        : 1.0);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -304,7 +273,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
                     children: [
                       Text(
                         s['childName'] ?? 'غير معروف',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         '${s['specialistName'] ?? 'أخصائي غير محدد'} • ${s['institutionName'] ?? ''}',
@@ -313,29 +282,28 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
                     ],
                   ),
                 ),
-                if (isUpcoming)
-                  SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CircularProgressIndicator(
-                          value: progress,
-                          backgroundColor: Colors.grey[200],
-                          color: Colors.teal,
-                          strokeWidth: 4,
+                SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CircularProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.grey[200],
+                        color: Colors.teal,
+                        strokeWidth: 4,
+                      ),
+                      Center(
+                        child: Icon(
+                          Icons.access_time,
+                          size: 20,
+                          color: Colors.teal[700],
                         ),
-                        Center(
-                          child: Icon(
-                            Icons.access_time,
-                            size: 20,
-                            color: Colors.teal[700],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -346,11 +314,11 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
             const SizedBox(height: 5),
             Text(
               'النوع: ${s['sessionType'] ?? 'N/A'} | المدة: ${s['duration']} دقيقة | السعر: \$${s['price']}',
-              style: TextStyle(fontSize: 13, color: Colors.black87),
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
             const SizedBox(height: 6),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: statusColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
@@ -362,7 +330,7 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
               ),
             ),
             const SizedBox(height: 6),
-            if (isUpcoming) Text('⏰ $countdown'),
+            Text('⏰ $countdown'),
             const SizedBox(height: 10),
             if (s['location'] != null && s['location'].isNotEmpty)
               GestureDetector(
@@ -400,23 +368,16 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (isUpcoming) ...[
-                  TextButton.icon(
-                    icon: Icon(Icons.check_circle_outline, color: Colors.teal),
-                    label: Text('تأكيد'),
-                    onPressed: () => _confirmSession(s['sessionId']),
-                  ),
-                  TextButton.icon(
-                    icon: Icon(Icons.cancel_outlined, color: Colors.red),
-                    label: Text('إلغاء'),
-                    onPressed: () => _cancelSession(s['sessionId']),
-                  ),
-                ] else
-                  TextButton.icon(
-                    icon: Icon(Icons.description_outlined, color: Colors.teal),
-                    label: Text('عرض التقرير'),
-                    onPressed: () {},
-                  ),
+                TextButton.icon(
+                  icon: const Icon(Icons.check_circle_outline, color: Colors.teal),
+                  label: const Text('تأكيد'),
+                  onPressed: () => _confirmSession(s['sessionId']),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                  label: const Text('إلغاء'),
+                  onPressed: () => _cancelSession(s['sessionId']),
+                ),
               ],
             ),
           ],
@@ -434,12 +395,11 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
     if (token.isEmpty) return;
 
     try {
-      await ApiService.confirmSession(token, id);
+      await ApiService.confirmSession(token, id.toString());
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('تم تأكيد الجلسة #$id ✅')));
       setState(() {
-        final session = widget.upcomingSessions.firstWhere((s) => s['sessionId'] == id);
-        session['status'] = 'Confirmed';
+        _upcomingSessions.removeWhere((s) => s['sessionId'] == id);
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -453,12 +413,11 @@ class _UpcomingSessionsScreenState extends State<UpcomingSessionsScreen>
     if (token.isEmpty) return;
 
     try {
-      await ApiService.cancelSession(token, id);
+      await ApiService.cancelSession(token, id.toString());
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('تم إلغاء الجلسة #$id ❌')));
       setState(() {
-        final session = widget.upcomingSessions.firstWhere((s) => s['sessionId'] == id);
-        session['status'] = 'Cancelled';
+        _upcomingSessions.removeWhere((s) => s['sessionId'] == id);
       });
     } catch (e) {
       ScaffoldMessenger.of(context)

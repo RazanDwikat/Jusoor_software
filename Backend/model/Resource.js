@@ -8,14 +8,13 @@ const Resource = sequelize.define('Resource', {
   title: { type: DataTypes.STRING, allowNull: false },
   description: { type: DataTypes.TEXT },
   link: { type: DataTypes.STRING },
-  type: { type: DataTypes.STRING }, // مثال: 'article', 'video', 'pdf'
+  type: { type: DataTypes.STRING }, 
   created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, {
   tableName: 'resources',
   timestamps: false
 });
 
-// العلاقة مع التشخيص
 Resource.belongsToMany(Diagnosis, {
   through: 'resource_diagnosis',
   foreignKey: 'resource_id',

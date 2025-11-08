@@ -55,14 +55,35 @@ const User = sequelize.define('User', {
     updated_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+
+    location_lat: {
+    type: DataTypes.DECIMAL(10, 8),
+    allowNull: true
+  },
+  location_lng: {
+    type: DataTypes.DECIMAL(11, 8),
+    allowNull: true
+  },
+  location_address: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  city: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    region: {
+        type: DataTypes.STRING(100),
+        allowNull: true
     }
+
 }, {
     tableName: 'Users',
     timestamps: false
 });
 
 User.belongsTo(Institution, { foreignKey: 'institution_id', as: 'institution' });
-// Add these associations after User definition
 
 module.exports = User;
 

@@ -1,8 +1,10 @@
+// lib/widgets/sessions_tab.dart
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../models/child_model.dart';
-import 'package:flutter/material.dart';
 import '../models/session.dart';
+import '../models/child_model.dart';
+import 'child_session_card.dart'; // ⬅️ استورد الكارد الجديد
+
 
 class SessionsTab extends StatefulWidget {
   final Child child;
@@ -15,18 +17,17 @@ class SessionsTab extends StatefulWidget {
 }
 
 class _SessionsTabState extends State<SessionsTab> {
-  late Future<List<SessionModel>> _sessionsFuture;
+  late Future<List<Session>> _sessionsFuture;
 
   @override
   void initState() {
     super.initState();
-    _sessionsFuture = ApiService.getChildSessions(widget.token, widget.child.id);
-
+    _sessionsFuture = ApiService.getChildSessions(widget.token, widget.child.id.toString());
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<SessionModel>>(
+    return FutureBuilder<List<Session>>(
       future: _sessionsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -42,13 +43,13 @@ class _SessionsTabState extends State<SessionsTab> {
           padding: const EdgeInsets.all(12),
           itemCount: sessions.length,
           itemBuilder: (context, idx) {
-            final s = sessions[idx];
+            final session = sessions[idx];
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: Text('${s.sessionType} • ${s.date} ${s.time}'),
-                subtitle: Text('Status: ${s.status}'),
+                title: Text('${session.sessionType} • ${session.date} ${session.time}'),
+                subtitle: Text('Status: ${session.status}'),
               ),
             );
           },
@@ -57,3 +58,4 @@ class _SessionsTabState extends State<SessionsTab> {
     );
   }
 }
+

@@ -6,9 +6,12 @@ const {
   getCompletedSessions,
   confirmSession,
   getChildSessions,
-  cancelSession
+  cancelSession,
+  getAllSessions 
 } = require('../controllers/sessionController');
 
+
+router.get('/sessions', authMiddleware, getAllSessions);
 router.get('/upcoming-sessions', authMiddleware, getUpcomingSessions);
 router.get('/completed-sessions', authMiddleware, getCompletedSessions);
 router.patch('/sessions/:id/confirm', authMiddleware, confirmSession);

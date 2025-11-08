@@ -1,197 +1,190 @@
-// ignore_for_file: prefer_const_constructors
-
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
 
 class InitialScreeningScreen extends StatefulWidget {
-  const InitialScreeningScreen({super.key});
+  const InitialScreeningScreen({Key? key}) : super(key: key);
 
   @override
   State<InitialScreeningScreen> createState() => _InitialScreeningScreenState();
 }
 
 class _InitialScreeningScreenState extends State<InitialScreeningScreen> {
-  // إجابات المستخدم
-  final Map<String, int> _answers = {
-    'language': 0,
-    'social': 0,
-    'motor': 0,
-    'academic': 0,
-  };
+  int currentQuestionIndex = 0;
 
-  bool _submitted = false;
-  String _result = '';
+  final List<Map<String, dynamic>> questions = [
+    {
+      "text": "هل يواجه طفلك صعوبة في التركيز لفترات طويلة؟",
+      "options": ["نعم", "أحيانًا", "لا"],
+    },
+    {
+      "text": "هل يتحرك كثيرًا أثناء الجلوس أو وقت الدراسة؟",
+      "options": ["نعم", "أحيانًا", "لا"],
+    },
+    {
+      "text": "هل يجد صعوبة في اتباع التعليمات؟",
+      "options": ["نعم", "أحيانًا", "لا"],
+    },
+    {
+      "text": "هل يظهر اهتمامًا محدودًا بالتفاعل مع الآخرين؟",
+      "options": ["نعم", "أحيانًا", "لا"],
+    },
+  ];
 
-  // دالة حساب النتيجة النهائية
-  void _calculateResult() {
-    int total = _answers.values.reduce((a, b) => a + b);
-    String classification;
+  List<String?> answers = [];
 
-    if (total <= 4) {
-      classification = '🟢 طبيعي - لا توجد مؤشرات تدعو للقلق';
-    } else if (total <= 8) {
-      classification = '🟡 يحتاج متابعة - يُفضّل مراقبة التقدّم';
-    } else {
-      classification = '🔴 يحتاج تدخل - يُنصح بمراجعة أخصائي';
-    }
+  @override
+  void initState() {
+    super.initState();
+    answers = List.filled(questions.length, null);
+  }
 
+  void selectAnswer(String option) {
     setState(() {
-      _result = classification;
-      _submitted = true;
+      answers[currentQuestionIndex] = option;
     });
   }
 
-  // عنصر تقييم فردي (سؤال)
-  Widget buildQuestion({
-    required String title,
-    required String keyName,
-  }) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ChoiceChip(
-                  label: Text('لا'),
-                  selected: _answers[keyName] == 0,
-                  onSelected: (selected) {
-                    setState(() {
-                      _answers[keyName] = 0;
-                    });
-                  },
-                ),
-                ChoiceChip(
-                  label: Text('أحيانًا'),
-                  selected: _answers[keyName] == 1,
-                  onSelected: (selected) {
-                    setState(() {
-                      _answers[keyName] = 1;
-                    });
-                  },
-                ),
-                ChoiceChip(
-                  label: Text('دائمًا'),
-                  selected: _answers[keyName] == 2,
-                  onSelected: (selected) {
-                    setState(() {
-                      _answers[keyName] = 2;
-                    });
-                  },
-                ),
-              ],
-            )
-          ],
-        ),
+  void nextQuestion() {
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+      });
+    } else {
+      _showResultsDialog();
+    }
+  }
+
+  void _showResultsDialog() {
+    int score = answers.where((a) => a == "نعم").length;
+
+    String result;
+    if (score >= 3) {
+      result = "قد تظهر لدى طفلك مؤشرات على اضطراب فرط الحركة (ADHD). يُنصح باستشارة مختص.";
+    } else if (score == 2) {
+      result = "قد تكون بعض التصرفات بحاجة لمتابعة، يُنصح بمراقبة السلوك بشكل دوري.";
+    } else {
+      result = "لا توجد مؤشرات مقلقة. استمر بدعم طفلك وتشجيعه.";
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("نتيجة التقييم"),
+        content: Text(result, textAlign: TextAlign.right),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("حسنًا"),
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    double progress = (currentQuestionIndex + 1) / questions.length;
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF7FAFC),
       appBar: AppBar(
-        title: Text('Initial Screening'),
-        backgroundColor: ParentAppColors.primaryColor,
-      ),
-      body: _submitted
-          ? _buildResultView()
-          : SingleChildScrollView(
-        child: Column(
-          children: [
-            SizedBox(height: 16),
-            Text(
-              '🧠 تقييم مبدئي للطفل',
-              style:
-              TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'أجب عن الأسئلة التالية لتحديد احتياجات الطفل الأولية:',
-              style: TextStyle(color: Colors.grey[700]),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16),
-
-            // الأسئلة
-            buildQuestion(
-                title:
-                'هل الطفل يتحدث جمل واضحة ويتفاعل لغويًا؟',
-                keyName: 'language'),
-            buildQuestion(
-                title:
-                'هل الطفل يتفاعل اجتماعيًا مع الآخرين؟',
-                keyName: 'social'),
-            buildQuestion(
-                title:
-                'هل يستطيع الطفل أداء الحركات الأساسية (مثل الجري أو الإمساك بالأشياء الصغيرة)؟',
-                keyName: 'motor'),
-            buildQuestion(
-                title:
-                'هل يواجه الطفل صعوبة في الانتباه أو التعلم؟',
-                keyName: 'academic'),
-
-            SizedBox(height: 20),
-
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ParentAppColors.primaryColor,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                padding:
-                EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-              ),
-              onPressed: _calculateResult,
-              child: Text('عرض النتيجة',
-                  style: TextStyle(fontSize: 16, color: Colors.white)),
-            ),
-            SizedBox(height: 30),
-          ],
+        backgroundColor: Colors.teal,
+        title: const Text("الاستبيان الذكي"),
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
         ),
       ),
-    );
-  }
-
-  // صفحة النتيجة
-  Widget _buildResultView() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline,
-                color: ParentAppColors.primaryColor, size: 80),
-            SizedBox(height: 20),
-            Text('نتيجة الفحص المبدئي:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 16),
-            Text(
-              _result,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+            // شريط التقدم
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey[300],
+              color: Colors.teal,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(10),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
+
+            // السؤال الحالي
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                child: Card(
+                  key: ValueKey(currentQuestionIndex),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 6,
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Text(
+                          questions[currentQuestionIndex]["text"],
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ...questions[currentQuestionIndex]["options"].map<Widget>(
+                              (option) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 55),
+                                backgroundColor: answers[currentQuestionIndex] == option
+                                    ? Colors.teal
+                                    : Colors.teal.shade100,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                              ),
+                              onPressed: () => selectAnswer(option),
+                              child: Text(
+                                option,
+                                style: TextStyle(
+                                  color: answers[currentQuestionIndex] == option
+                                      ? Colors.white
+                                      : Colors.teal.shade800,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // الزر التالي
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _submitted = false;
-                  _result = '';
-                  _answers.updateAll((key, value) => 0);
-                });
-              },
+              onPressed: answers[currentQuestionIndex] != null ? nextQuestion : null,
               style: ElevatedButton.styleFrom(
-                  backgroundColor: ParentAppColors.primaryColor),
-              child: Text('إعادة التقييم'),
+                backgroundColor: Colors.teal,
+                minimumSize: const Size(double.infinity, 55),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              child: Text(
+                currentQuestionIndex == questions.length - 1
+                    ? "عرض النتيجة"
+                    : "التالي",
+                style: const TextStyle(fontSize: 18),
+              ),
             ),
           ],
         ),
